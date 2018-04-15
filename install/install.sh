@@ -1,5 +1,11 @@
 #!/bin/bash
 echo -e "\033[1;33m[Video Encode System For Linux] \033[0m"
+echo -e "\033[0;34m+Change YUM Base to 163........\033[0m"
+time_start=$(date +%s)
+mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS6-Base-163.repo
+yum clean all
+yum makecache
 echo -e "\033[0;34m+Initialization System........\033[0m"
 yum -y install wget
 yum -y install epel-release
@@ -54,3 +60,22 @@ sleep 2
 cd /usr/local/src
 rpm -Uvh http://mirror.webtatic.com/yum/el6/latest.rpm
 yum -y install php70w php70w-mysql php70w-mbstring php70w-mcrypt php70w-gd php70w-imap php70w-ldap php70w-odbc php70w-pear php70w-xml php70w-xmlrpc php70w-pdo php70w-fpm
+echo -e "\033[0;34m+Config Mysql\033[0m"
+sleep 2
+service mysqld start
+mysql_password = head -200 /dev/urandom | cksum | cut -f1 -d" "
+/usr/bin/mysqladmin -u root password $mysql_password
+service mysqld restart
+echo -e "\033[0;34m+Start Nginx\033[0m"
+/usr/local/nginx/sbin/nginx
+echo -e "\033[0;34m+Start PHP-FPM\033[0m"
+service php-fpm start
+echo -e "\033[0;34m+Disable Iptables\033[0m"
+service iptables stop
+echo -e "\033[0;34m+Import Database\033[0m"
+mysql -uroot -p$mysql_password -e "CREATE DATABASE video_server"
+mysql -uroot -p$mysql_password < database_v0.2-alpha.sql
+time_end=$(date +%s)
+total_time=$(($time_end - time_start))
+echo -e "\033[1;33m Mysql Password:$mysql_password\033[0m";
+echo -e "\033[1;33m Done! $total_time Sec Used\033[0m";
