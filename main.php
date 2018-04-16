@@ -3,7 +3,7 @@ echo "Video Encode System\n";
 echo "===================\n";
 echo "Build By haha_Dashen\n";
 echo "Base on PackPHPFrame\n";
-echo "Build:20180413T9\n";
+echo "Build:20180416T3\n";
 echo "===================\n";
 echo "Loading Function Database......";
 include("include/function.php");
