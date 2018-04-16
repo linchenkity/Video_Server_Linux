@@ -155,3 +155,10 @@ function Col_echo($text, $color)
     }
     echo $prefix.$text."\033[0m";
 }
+//日志功能
+function Add_Log($module,$log,$type){
+    $today=date('Ymd',time());
+    $handle=fopen('log/'.$today.'.log','a');
+    fwrite($handle,'['.date("Y-m-d H:i:s",time()).']['.$module.']-{'.$type.'}-'.$log."\r\n");
+    fclose($handle);
+}
