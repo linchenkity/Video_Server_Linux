@@ -20,6 +20,7 @@ if (!Login_Status()) {
         Video Encode System
     </a>
     <span class="badge badge-secondary">V&nbsp;<?php echo $version;?></span>&nbsp;
+    <span class="badge badge-danger">Dev</span>&nbsp;
     <span class="badge badge-primary">Linux</span>&nbsp;
     <span class="badge badge-success">Open Source Project</span>&nbsp;
     <span class="badge badge-info">Build:20180416T1</span>
