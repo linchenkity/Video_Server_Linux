@@ -64,6 +64,7 @@ if (!Login_Status()) {
             </div>
         </div>
     </div>
+    <br>
     <div class="row">
         <div class="col-lg-6 col-md-6">
             <div class="card">
@@ -71,7 +72,13 @@ if (!Login_Status()) {
                     Encode Control
                 </div>
                 <div class="card-body">
-                    <button id="start_encode" type="button" class="btn btn-primary btn-lg" onclick="Start_Encode()">Start Encode</button>
+                    <?php
+                    if (empty(Get_Config('video_folder'))||empty(Get_Config('upload_folder'))){
+                        echo '<div class="alert alert-danger">Please set video folder and upload folder before start encode!</div>';
+                    }else{
+                        echo '<button id="start_encode" type="button" class="btn btn-primary btn-lg" onclick="Start_Encode()">Start Encode</button>';
+                    }
+                    ?>
                 </div>
             </div>
         </div>
