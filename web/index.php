@@ -20,6 +20,7 @@ if (!Login_Status()) {
         Video Encode System
     </a>
     <span class="badge badge-secondary">V&nbsp;<?php echo $version;?></span>&nbsp;
+    <span class="badge badge-primary">Linux</span>&nbsp;
     <span class="badge badge-success">Open Source Project</span>&nbsp;
     <span class="badge badge-info">Build:20180409T1</span>
 </nav>
@@ -49,7 +50,6 @@ if (!Login_Status()) {
         var height = window.innerHeight - 65;
         document.getElementById('main_page').setAttribute('height', height + 'px');
     };
-
     function set_frame() {
         var height = window.innerHeight - 65;
         document.getElementById('main_page').setAttribute('height', height + 'px');
