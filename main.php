@@ -27,6 +27,7 @@ if ($dual_socket_support == 1) {
     Col_echo("[Main] Dual Socket Support Enable!\n", "brown");
 }
 Col_echo("[MultiThread] Sleep" . "\n", "blue");
+Add_Log('Main Thread','Main Thread Running','INFO');
 start:
 Col_echo("[MultiThread] Time:" . date("Y-m-d H:i:s") . "\n", "brown");
 //Dynamic Load Config
