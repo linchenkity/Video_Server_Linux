@@ -19,7 +19,8 @@ yum -y install wget
 yum -y install epel-release
 yum -y install gcc automake autoconf libtool gcc-c++
 yum -y install gd zlib zlib-devel openssl openssl-devel libxml2 libxml2-devel libjpeg libjpeg-devel libpng libpng-devel freetype freetype-devel libmcrypt libmcrypt-devel
-yum -y install cur curl-devel libxslt libxslt-devel
+yum -y install curl curl-devel libxslt libxslt-devel
+yum -y install screen
 echo -e "\033[0;34m+Install Mysql\033[0m"
 sleep 2
 rpm -Uvh http://repo.mysql.com/mysql-community-release-el6-5.noarch.rpm
@@ -109,5 +110,5 @@ echo -e "#####################################"
 echo -e "\033[0m"
 time_end=$(date +%s)
 total_time=$(($time_end - time_start))
-echo -e "\033[1;33mMysql Password:$mysql_password\033[0m";
-echo -e "\033[1;33mDone! $total_time Seconds Used\033[0m";
+echo -e "\033[1;33mMysql Password:$mysql_password\033[0m"
+echo -e "\033[1;33mDone! $total_time Seconds Used\033[0m"
