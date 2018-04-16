@@ -197,5 +197,28 @@ if ($_GET['action'] == "update") {
         $return['data']['message'] = "Update ScreenShot Config Successful!";
         echo json_encode($return);
         exit;
+    }elseif ($_GET['type']=="storage"){
+        if (!Login_Status()) {
+            $return['code'] = "101";
+            $return['data']['message'] = "Login Status Error!";
+            echo json_encode($return);
+            exit;
+        }
+        $db_link = DB_Link();
+        $redis = Redis_Link();
+        $upload_folder=mysqli_real_escape_string($db_link,$_POST['upload']);
+        $video_folder=mysqli_real_escape_string($db_link,$_POST['video']);
+        if (empty($upload_folder)||empty($video_folder)){
+            $return['code'] = "101";
+            $return['data']['message'] = "Empty Value";
+            echo json_encode($return);
+            exit;
+        }
+        Change_Config('upload_folder',$upload_folder);
+        Change_Config('video_folder',$video_folder);
+        $return['code'] = "201";
+        $return['data']['message'] = "Update Storage Config Successful!";
+        echo json_encode($return);
+        exit;
     }
 }

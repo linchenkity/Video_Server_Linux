@@ -34,6 +34,10 @@ if (!Login_Status()) {
                aria-controls="screen_shot" aria-selected="false">ScreenShot</a>
         </li>
         <li class="nav-item">
+            <a class="nav-link" id="storage" data-toggle="tab" href="#storage_tab" role="tab"
+               aria-controls="storage" aria-selected="false">Storage</a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" id="nginx_config" data-toggle="tab" href="#nginx_config_tab" role="tab"
                aria-controls="nginx_config" aria-selected="false">Nginx Config</a>
         </li>
@@ -339,6 +343,33 @@ if (!Login_Status()) {
                 <button class="btn btn-outline-success btn-lg" onclick="Update_ScreenShot()">Submit</button>
             </div>
         </div>
+        <div class="tab-pane fade" id="storage_tab" role="tabpanel" aria-labelledby="storage">
+            <div id="alert_storage"></div>
+            <div class="card">
+                <div class="card-header">
+                    Storage
+                </div>
+                <div class="card-body">
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label" for="upload_folder">Upload Folder</label>
+                        <div class="col-sm-10">
+                            <input class="form-control" id="upload_folder" placeholder="Upload Folder(Like: /home/upload)"
+                                   value="<?php echo Get_Config('upload_folder'); ?>">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-sm-2 col-form-label" for="video_folder">Video Folder</label>
+                        <div class="col-sm-10">
+                            <input class="form-control" id="video_folder" placeholder="Video Folder(Like: /home/video)"
+                                   value="<?php echo Get_Config('video_folder'); ?>">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div align="right">
+                <button class="btn btn-outline-success btn-lg" onclick="Update_Storage();">Submit</button>
+            </div>
+        </div>
         <div class="tab-pane fade" id="nginx_config_tab" role="tabpanel" aria-labelledby="nginx_config">
             <div class="card">
                 <div class="card-header">
@@ -472,7 +503,30 @@ if (!Login_Status()) {
             }
         }
     }
-
+    
+    function Update_Storage() {
+        var upload=document.getElementById('upload_folder').value;
+        var video=document.getElementById('video_folder').value;
+        var ajax = new XMLHttpRequest();
+        var alert = document.getElementById('alert_storage');
+        ajax.open('POST', 'ajax/setting.php?action=update&type=storage', true);
+        ajax.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        ajax.send('upload=' + upload + '&video=' + video);
+        ajax.onreadystatechange = function () {
+            if (ajax.readyState == 4 && ajax.status == 200) {
+                var result = JSON.parse(ajax.responseText);
+                if (result['code'] == 201) {
+                    alert.setAttribute('class', 'alert alert-success');
+                    alert.innerHTML = result['data']['message'];
+                }
+                if (result['code'] == 101) {
+                    alert.setAttribute('class', 'alert alert-danger');
+                    alert.innerHTML = result['data']['message'];
+                }
+            }
+        }
+    }
+    
     function Random_API_Key(len) {
         len = len || 32;
         var $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678';
