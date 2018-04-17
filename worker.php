@@ -17,10 +17,6 @@ if (empty($worker_no)){
 $redis->set('Worker_Status_' . $worker_no, '1');
 echo "[Worker] Register Success\n";
 echo "[Worker] Create VM\n";
-if (file_exists("VM\\ffmpeg_vm_" . $worker_no . ".exe")) {
-    unlink("VM\\ffmpeg_vm_" . $worker_no . ".exe");
-}
-exec('copy /y ffmpeg.exe VM\\ffmpeg_vm_' . $worker_no . '.exe');
 start:
 //Dynamic Load Config
 $encode_bitrate_video = Get_Config('encode_bitrate_video');
@@ -41,13 +37,13 @@ if (!empty($work)) {
     echo "[Encode] Filename:" . $row_work['filename'] . "\n";
     //创建文件夹
     $today = $row_work['day'];
-    if (!file_exists("video\\" . $today)) {
-        mkdir("video\\" . $today, 0777, true);
+    if (!file_exists("video/" . $today)) {
+        mkdir("video/" . $today, 0777, true);
         echo "[File]Create Dir '" . $today . "'\n";
     }
     $hls_dir = $row_work['random'];
     echo "[File] Create Dir '" . $hls_dir . "'\n";
-    mkdir("video\\" . $today . "\\" . $hls_dir, 0777, true);
+    mkdir("video/" . $today . "/" . $hls_dir, 0777, true);
     //计算文件名
     $file_type = end(explode(".", $row_work['filename']));
     $filename = $row_work['random'] . '.' . $file_type;
@@ -64,14 +60,14 @@ if (!empty($work)) {
         $video_framerate = '';
     }
     //预置命令
-    $common = "VM\\ffmpeg_vm_" . $worker_no . ".exe -i \"encoding\\" . $filename . "\" -b:v " . $encode_bitrate_video . "K -b:a " . $encode_bitrate_audio . "K -c:v libx264 -c:a aac -keyint_min " . $encode_ts_frame . " -g " . $encode_ts_frame . $video_res . $video_framerate . " -sc_threshold 0 -strict -2 -f hls -hls_list_size 0 -hls_init_time " . $encode_ts_time . " -hls_time " . $encode_ts_time . " -hls_key_info_file video\\" . $today . "\\" . $hls_dir . "\\key_info -hls_segment_filename video\\" . $today . "\\" . $hls_dir . "\\" . $hls_dir . "%03d.ts video\\" . $today . "\\" . $hls_dir . "\\index.m3u8";
+    $common = "ffmpeg -i \"encoding/" . $filename . "\" -b:v " . $encode_bitrate_video . "K -b:a " . $encode_bitrate_audio . "K -c:v libx264 -c:a aac -keyint_min " . $encode_ts_frame . " -g " . $encode_ts_frame . $video_res . $video_framerate . " -sc_threshold 0 -strict -2 -f hls -hls_list_size 0 -hls_init_time " . $encode_ts_time . " -hls_time " . $encode_ts_time . " -hls_key_info_file video/" . $today . "/" . $hls_dir . "/key_info -hls_segment_filename video/" . $today . "/" . $hls_dir . "/" . $hls_dir . "%03d.ts video/" . $today . "/" . $hls_dir . "/index.m3u8";
     //设置加密文件
     echo "[Encode] Setting Encryption Key\n";
-    $en_file = fopen("video\\" . $today . "\\" . $hls_dir . "\\key.key", 'w');
+    $en_file = fopen("video/" . $today . "/" . $hls_dir . "/key.key", 'w');
     fwrite($en_file, Random_String(16));
     fclose($en_file);
-    $en_file = fopen("video\\" . $today . "\\" . $hls_dir . "\\key_info", 'w');
-    fwrite($en_file, "key.key\r\nvideo\\" . $today . "\\" . $hls_dir . "\\key.key");
+    $en_file = fopen("video/" . $today . "/" . $hls_dir . "/key_info", 'w');
+    fwrite($en_file, "key.key\r\nvideo/" . $today . "/" . $hls_dir . "/key.key");
     fclose($en_file);
     //开始截图
     if (Get_Config('sc_jpeg') == 1) {
@@ -82,8 +78,8 @@ if (!empty($work)) {
             $jpeg_res = "";
         }
         echo "[ScreenShot] JPEG-Working...\n";
-        if (!file_exists("video\\" . $today . "\\" . $hls_dir . "\\screenshots")) {
-            mkdir("video\\" . $today . "\\" . $hls_dir . "\\screenshots", 0777, true);
+        if (!file_exists("video/" . $today . "/" . $hls_dir . "/screenshots")) {
+            mkdir("video/" . $today . "/" . $hls_dir . "/screenshots", 0777, true);
         }
         //计算截图参数
         $start_time = Get_Config('sc_jpeg_start_time');
@@ -91,11 +87,11 @@ if (!empty($work)) {
         $jpeg_int = Get_Config('sc_jpeg_int');
         $sc_t = $jpeg_num * $jpeg_int;
         $sc_r = 1 / $jpeg_int;
-        $jpeg_common = "VM\\ffmpeg_vm_" . $worker_no . ".exe -i encoding\\" . $filename . " -ss " . $start_time . " -t " . $sc_t . " -r " . $sc_r . $jpeg_res . " -f image2 video\\" . $today . "\\" . $hls_dir . "\\screenshots\\%1d.jpg";
+        $jpeg_common = "ffmpeg -i encoding/" . $filename . " -ss " . $start_time . " -t " . $sc_t . " -r " . $sc_r . $jpeg_res . " -f image2 video/" . $today . "/" . $hls_dir . "/screenshots/%1d.jpg";
         sleep(2);
         exec($jpeg_common);
         //截图完成 扫描截图生成文件 TODO:截图超过150张处理
-        $sc_file = getFile("video\\" . $today . "\\" . $hls_dir . "\\screenshots");
+        $sc_file = getFile("video/" . $today . "/" . $hls_dir . "/screenshots");
         for ($num = $file_num = 0; !empty($sc_file[$num]); $num++) {
             $sc_file_type = end(explode(".", $sc_file[$num]));
             if ($sc_file_type == "jpg") {
@@ -117,18 +113,18 @@ if (!empty($work)) {
             $gif_res = "";
         }
         echo "[ScreenShot] GIF-Working...\n";
-        if (!file_exists("video\\" . $today . "\\" . $hls_dir . "\\screenshots")) {
-            mkdir("video\\" . $today . "\\" . $hls_dir . "\\screenshots", 0777, true);
+        if (!file_exists("video/" . $today . "/" . $hls_dir . "/screenshots")) {
+            mkdir("video/" . $today . "/" . $hls_dir . "/screenshots", 0777, true);
         }
         $gif_start_time = Get_Config('sc_gif_start_time');
         $gif_time = Get_Config('sc_gif_time');
         $gif_res = Get_Config('sc_gif_res');
         $gif_framerate = Get_Config('sc_gif_framerate');
-        $gif_common = "VM\\ffmpeg_vm_" . $worker_no . ".exe -i encoding\\" . $filename . " -ss " . $gif_start_time . " -t " . $gif_time . " -s " . $gif_res . " -r " . $gif_framerate . " video\\" . $today . "\\" . $hls_dir . "\\screenshots\\1.gif";
+        $gif_common = "ffmpeg -i encoding/" . $filename . " -ss " . $gif_start_time . " -t " . $gif_time . " -s " . $gif_res . " -r " . $gif_framerate . " video/" . $today . "/" . $hls_dir . "/screenshots/1.gif";
         sleep(2);
         exec($gif_common);
         //截图完成 扫描截图生成文件
-        if (file_exists("video\\" . $today . "\\" . $hls_dir . "\\screenshots\\1.gif")) {
+        if (file_exists("video/" . $today . "/" . $hls_dir . "/screenshots/1.gif")) {
             $gif_file[0] = '1.gif';
             $gif_file = json_encode($gif_file);
             mysqli_query($db_link, "INSERT INTO `screenshot` (`ID`, `video_id`, `type`, `files`) VALUES (NULL, '" . $row_work['ID'] . "', '2', '" . $gif_file . "')");
@@ -141,7 +137,7 @@ if (!empty($work)) {
     echo "\n";
     echo "[Encode] Encode Done!\n";
     echo "[File] Delete File " . $row_work['filename'] . "\n";
-    unlink("encoding\\" . $filename);
+    unlink("encoding/" . $filename);
     echo "[Worker] Done!\n";
     $redis->del('Work_Info_' . $worker_no);
     $redis->del('Worker_Status_' . $worker_no);
