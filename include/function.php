@@ -162,3 +162,16 @@ function Add_Log($module,$log,$type){
     fwrite($handle,'['.date("Y-m-d H:i:s",time()).']['.$module.']-{'.$type.'}-'.$log."\r\n");
     fclose($handle);
 }
+//计算文件大小
+function Get_Size($size, $format) {
+    $p = 0;
+    if ($format == 'KB') {
+        $p = 1;
+    } elseif ($format == 'MB') {
+        $p = 2;
+    } elseif ($format == 'GB') {
+        $p = 3;
+    }
+    $size /= pow(1024, $p);
+    return number_format($size, 3);
+}
