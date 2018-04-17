@@ -59,12 +59,12 @@ if ($start_sign == '1') {
     } else {
         for ($num = 0; !empty($file[$num]); $num++) {
             //MD5
-            $md5 = md5_file('upload\\' . $file[$num]);
+            $md5 = md5_file('upload/' . $file[$num]);
             $already = mysqli_fetch_array(mysqli_query($db_link, "SELECT * FROM video_list WHERE md5 = '" . $md5 . "'"));
             if (!empty($already['ID'])) {
                 Col_echo("[File] MD5 Matched \n", 'green');
                 mysqli_query($db_link, "INSERT INTO `video_list` (`ID`, `filename`, `random`, `day`, `time`, `status`, `md5`) VALUES (NULL, '" . $file[$num] . "', '" . $already['random'] . "', '" . $already['day'] . "', '" . time() . "', '2', '" . $md5 . "')");
-                unlink('upload\\' . $file[$num]);
+                unlink('upload/' . $file[$num]);
             } else {
                 $today = date("Ymd", time());
                 $random = Random_String(8);
@@ -72,7 +72,7 @@ if ($start_sign == '1') {
                 Col_echo("[File] Find 1 Encode File\n", 'light_blue');
                 $file_type = end(explode(".", $file[$num]));
                 //Move And Rename Encode File (Filename same as 'Random')
-                rename('upload\\' . $file[$num], 'encoding\\' . $random . '.' . $file_type);
+                rename('upload/' . $file[$num], 'encoding/' . $random . '.' . $file_type);
             }
         }
     }
