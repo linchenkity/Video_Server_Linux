@@ -34,6 +34,8 @@ FFmpeg安装脚本为独立安装脚本 您可以使用其他方法安装ffmpeg 
 
 ## 加入我们
 
+[码云项目地址](https://gitee.com/PackTeamCode/Video_Server_Linux) | [Coding.NET项目地址](https://coding.net/u/haha_Dashen/p/Video_Server_Linux)
+
 此项目QQ群:674511398
 
 PackTeam官方讨论群:296114195 
