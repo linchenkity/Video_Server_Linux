@@ -56,7 +56,7 @@ Col_echo("[MultiThread] Free:" . $worker_free . " Busy:" . $worker_busy . "\n", 
 $start_sign = $redis->get('Main_Start');
 if ($start_sign == '1') {
     Col_echo("[File] Searching Encode File\n", 'cyan');
-    Add_Log('File','Star Searching File','INFO');
+    Add_Log('File','Start Searching File','INFO');
     $file = getFile(Get_Config('upload_folder'));
     if (empty($file[0])) {
         Col_echo("[File] No File Find\n", 'cyan');
@@ -76,7 +76,7 @@ if ($start_sign == '1') {
                 $random = Random_String(8);
                 mysqli_query($db_link, "INSERT INTO `video_list` (`ID`, `filename`, `random`, `day`, `time`, `status`, `md5`) VALUES (NULL, '" . $file[$num] . "', '" . $random . "', '" . $today . "', '" . time() . "', '0', '" . $md5 . "')");
                 Col_echo("[File] Find 1 Encode File\n", 'light_blue');
-                Add_Log('File','File New Encode File.ID:'.mysqli_insert_id($db_link),'INFO');
+                Add_Log('File','New Encode File.ID:'.mysqli_insert_id($db_link),'INFO');
                 $file_type = end(explode(".", $file[$num]));
                 //Move And Rename Encode File (Filename same as 'Random')
                 rename(Get_Config('upload_folder').'/' . $file[$num], 'encoding/' . $random . '.' . $file_type);
@@ -98,7 +98,10 @@ while ($row_waiting = mysqli_fetch_array($result_waiting)) {
             Add_Log('TaskManager','Push Task To '.$i.'#','INFO');
             Col_echo("[MultiThread] Pull Worker " . $i . "# UP\n", 'green');
             Add_Log('TaskManager','Pull Worker '.$i.'# UP','INFO');
-            pclose(popen('start php\php.exe -c php\php.ini worker.php ' . $i . ' ' . $row_waiting['ID'], 'r'));
+            exec('screen -S thread_'.$i.' -X quit');
+            exec('screen -dmS thread_'.$i);
+            exec('screen -x -S thread_'.$i.' -p 0 -X stuff "php worker.php '.$i.' '.$row_waiting['ID'].'"');
+            exec("screen -x -S thread_".$i." -p 0 -X stuff $'\\n'");
             mysqli_query($db_link, "UPDATE `video_list` SET `status` = '1' WHERE `ID` = " . $row_waiting['ID'] . ";");
             sleep(2);
             $find = 1;

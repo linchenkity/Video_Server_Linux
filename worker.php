@@ -30,7 +30,7 @@ $worker_thread = Get_Config('worker_thread');
 $work = $argv[2];
 if (!empty($work)) {
     $redis->set('Worker_Status_' . $worker_no, '2');
-    exec('title Worker ' . $worker_no . '# [Busy]');
+    Add_Log('Worker','Worker Starting.....','INFO');
     echo "[Worker] Get Work.\n";
     echo "[Worker] Find Work Data\n";
     $row_work = mysqli_fetch_array(mysqli_query($db_link, "SELECT * FROM video_list WHERE ID = '" . $work. "'"));
@@ -40,9 +40,11 @@ if (!empty($work)) {
     if (!file_exists(Get_Config('video_folder')."/" . $today)) {
         mkdir(Get_Config('video_folder')."/" . $today, 0777, true);
         echo "[File]Create Dir '" . $today . "'\n";
+        Add_Log('Worker-File','Create Dir "'.$today.'"','INFO');
     }
     $hls_dir = $row_work['random'];
     echo "[File] Create Dir '" . $hls_dir . "'\n";
+    Add_Log('Worker-File','Create Dir "'.$hls_dir.'"','INFO');
     mkdir(Get_Config('video_folder')."/" . $today . "/" . $hls_dir, 0777, true);
     //计算文件名
     $file_type = end(explode(".", $row_work['filename']));
@@ -63,6 +65,7 @@ if (!empty($work)) {
     $common = "ffmpeg -i \"encoding/" . $filename . "\" -b:v " . $encode_bitrate_video . "K -b:a " . $encode_bitrate_audio . "K -c:v libx264 -c:a aac -keyint_min " . $encode_ts_frame . " -g " . $encode_ts_frame . $video_res . $video_framerate . " -sc_threshold 0 -strict -2 -f hls -hls_list_size 0 -hls_init_time " . $encode_ts_time . " -hls_time " . $encode_ts_time . " -hls_key_info_file ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/key_info -hls_segment_filename ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/" . $hls_dir . "%03d.ts ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/index.m3u8";
     //设置加密文件
     echo "[Encode] Setting Encryption Key\n";
+    Add_Log('Worker-Encode','Setting Encryption Key','INFO');
     $en_file = fopen(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/key.key", 'w');
     fwrite($en_file, Random_String(16));
     fclose($en_file);
@@ -78,6 +81,7 @@ if (!empty($work)) {
             $jpeg_res = "";
         }
         echo "[ScreenShot] JPEG-Working...\n";
+        Add_Log('Worker-ScreenShot','JPEG-Working','INFO');
         if (!file_exists(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots")) {
             mkdir(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots", 0777, true);
         }
@@ -113,6 +117,7 @@ if (!empty($work)) {
             $gif_res = "";
         }
         echo "[ScreenShot] GIF-Working...\n";
+        Add_Log('Worker-ScreenShot','GIF-Working','INFO');
         if (!file_exists(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots")) {
             mkdir(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots", 0777, true);
         }
@@ -132,11 +137,14 @@ if (!empty($work)) {
     }
     //开始转码
     echo "[Encode] Starting FFMPEG..........\n";
+    Add_Log('Worker-Encode','Starting FFmpeg','INFO');
     sleep(2);
     exec($common);
     echo "\n";
     echo "[Encode] Encode Done!\n";
+    Add_Log('Worker-Encode','Encode Done','INFO');
     echo "[File] Delete File " . $row_work['filename'] . "\n";
+    Add_Log('Worker-File','Delete File "'.$row_work['filename'].'"','INFO');
     unlink("encoding/" . $filename);
     echo "[Worker] Done!\n";
     $redis->del('Work_Info_' . $worker_no);
@@ -145,5 +153,6 @@ if (!empty($work)) {
     exit;
 } else {
     echo "[Worker] Error!";
+    Add_Log('Worker','Exiting','ERROR');
     exit;
 }
