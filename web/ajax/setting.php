@@ -122,7 +122,7 @@ if ($_GET['action'] == "update") {
     server_name " . $video_domain . ";
     location / {
         add_header Access-Control-Allow-Origin *;
-        root ../video;
+        root ".Get_Config('video_folder').";
         " . $secure_part . "
         index index.html index.htm;
     }
@@ -132,13 +132,13 @@ if ($_GET['action'] == "update") {
     }
 }";
         //打开文件句柄
-        $file_handle = fopen('../../nginx/conf/Video_Service.conf', 'w');
+        $file_handle = fopen('/usr/local/nginx/conf/Video_Service.conf', 'w');
         //写入
         fwrite($file_handle, $file_text);
         //关闭句柄
         fclose($file_handle);
         //重载Nginx
-        pclose(popen("Nginx_Reload.cmd", 'r'));
+        exec("/usr/local/nginx/sbin/nginx -s reload");
         $return['code'] = "201";
         $return['data']['message'] = "Update Video Service Config Successful!";
         echo json_encode($return);
