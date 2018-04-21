@@ -76,7 +76,11 @@ if (!Login_Status()) {
                     if (empty(Get_Config('video_folder'))||empty(Get_Config('upload_folder'))){
                         echo '<div class="alert alert-danger">Please set video folder and upload folder before start encode!</div>';
                     }else{
-                        echo '<button id="start_encode" type="button" class="btn btn-primary btn-lg" onclick="Start_Encode()">Start Encode</button>';
+                        if (is_dir(Get_Config('video_folder'))&&is_dir(Get_Config('upload_folder'))){
+                            echo '<button id="start_encode" type="button" class="btn btn-primary btn-lg" onclick="Start_Encode()">Start Encode</button>';
+                        }else{
+                            echo '<div class="alert alert-danger">Can\'t Read Video/Upload Folder</div>';
+                        }
                     }
                     ?>
                 </div>
