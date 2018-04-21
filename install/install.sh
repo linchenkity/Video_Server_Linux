@@ -92,7 +92,7 @@ service mysqld restart
 echo -e "\033[0;34m+Start Nginx\033[0m"
 /usr/local/nginx/sbin/nginx
 echo -e "\033[0;34m+Start PHP-FPM\033[0m"
-service php-fpm start
+php-fpm -R
 echo -e "\033[0;34m+Start Redis\033[0m"
 service redis start
 echo -e "\033[0;34m+Disable Iptables\033[0m"
