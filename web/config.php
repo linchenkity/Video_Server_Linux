@@ -187,9 +187,9 @@ if (!Login_Status()) {
                                     echo "checked";
                                 } ?>> On
                             </label>
-                            <label class="btn btn-primary" <?php if ($ps == 0) {
+                            <label class="btn btn-primary <?php if ($ps == 0) {
                                 echo "active";
-                            } ?> onclick="play_secure=0;">
+                            } ?>"  onclick="play_secure=0;">
                                 <input type="radio" name="play_secure" id="option2"
                                        autocomplete="off" <?php if ($ps == 0) {
                                     echo "checked";
