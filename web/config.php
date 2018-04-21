@@ -350,6 +350,9 @@ if (!Login_Status()) {
                     Storage
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-danger"><strong>WARNING:</strong>Update this part will restart Nginx
+                        service.
+                    </div>
                     <div class="form-group row">
                         <label class="col-sm-2 col-form-label" for="upload_folder">Upload Folder</label>
                         <div class="col-sm-10">
