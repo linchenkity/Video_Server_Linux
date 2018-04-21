@@ -28,7 +28,7 @@ if ($_GET['action']=="delete"){
         $return['data']['message']=$return['data']['message'].$row_delete['ID'];
     }
     //删除视频文件目录
-    Delete_Dir("..\\..\\video\\".$row_video['day']."\\".$row_video['random']);
+    Delete_Dir(Get_Config('video_folder')."/".$row_video['day']."/".$row_video['random']);
     $return['code'] = "201";
     echo json_encode($return);
     exit;

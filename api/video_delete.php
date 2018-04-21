@@ -31,5 +31,5 @@ for ($i=0;$row_delete=mysqli_fetch_array($result_delete);$i++){
     $return['data']['message']=$return['data']['message'].$row_delete['ID'];
 }
 //删除视频文件目录
-Delete_Dir("..\\video\\".$row_video['day']."\\".$row_video['random']);
+Delete_Dir(Get_Config('video_folder')."/".$row_video['day']."/".$row_video['random']);
 echo json_encode($return);
