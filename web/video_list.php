@@ -30,6 +30,9 @@ $success=mysqli_num_rows(mysqli_query($db_link,"SELECT * FROM video_list WHERE s
             Encoding:<span class="badge badge-info"><?php echo $encoding;?></span>&nbsp;
             Success:<span class="badge badge-success"><?php echo $success;?></span>&nbsp;&nbsp;&nbsp;&nbsp;
             <button class="btn btn-primary" onclick="Get_Video_List(now_page,'30')">Refresh</button>
+            <button id="copy_m3u8" class="js-copy btn btn-primary" data-clipboard-text="">
+                Copy M3U8 Link
+            </button>
         </div>
     </div>
     <div class="row">
@@ -66,10 +69,14 @@ $success=mysqli_num_rows(mysqli_query($db_link,"SELECT * FROM video_list WHERE s
 <script src="js/jquery-3.3.1.min.js"></script>
 <script src="js/popper.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
+<script src="js/clipboard.min.js"></script>
 <script>
     var now_page=1;
+    var copy_m3u8=document.getElementById('copy_m3u8');
+    var clipboard = new ClipboardJS('.js-copy');
     Window.onload=Get_Video_List('1','30');
     function Get_Video_List(page,num) {
+        copy_m3u8.setAttribute('data-clipboard-text','');
         page=Number(page);
         var video_list=document.getElementById('video_list');
         var ajax=new XMLHttpRequest();
@@ -112,6 +119,7 @@ $success=mysqli_num_rows(mysqli_query($db_link,"SELECT * FROM video_list WHERE s
                         td_action.innerHTML='<a href="player/play.php?id='+result['data'][i]['ID']+'" class="btn btn-primary" target="_blank">Play</a>&nbsp;' +
                             '<a href="'+result['data'][i]['m3u8_link']+'" class="btn btn-warning" target="_blank">M3u8</a>&nbsp;' +
                             '<button class="btn btn-danger" onclick="Delete_Video('+result['data'][i]['ID']+')">Delete</button>';
+                        copy_m3u8.setAttribute('data-clipboard-text',copy_m3u8.getAttribute('data-clipboard-text')+'\r'+result['data'][i]['m3u8_link']);
                         row_tr.appendChild(td_action);
                         //Add ALL
                         video_list.appendChild(row_tr);
