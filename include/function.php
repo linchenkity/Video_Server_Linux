@@ -175,3 +175,20 @@ function Get_Size($size, $format) {
     $size /= pow(1024, $p);
     return number_format($size, 3);
 }
+//获取视频信息
+function Get_Video_Info($video){
+    $cache_random=Random_String(8);
+    exec('ffmpeg -i '.$video.' > cache_'.$cache_random.' 2>&1');
+    $cache=file_get_contents('cache_'.$cache_random);
+    unlink('cache_'.$cache_random);
+    if (preg_match("/Duration: (.*?), start: (.*?), bitrate: (\d*) kb\/s/", $cache, $match)) {
+        $return['duration'] = $match[1]; //播放时间
+        $arr_duration = explode(':', $match[1]);
+        $return['seconds'] = $arr_duration[0] * 3600 + $arr_duration[1] * 60 + $arr_duration[2]; //转换播放时间为秒数
+        $return['start'] = $match[2]; //开始时间
+        $return['bitrate'] = $match[3]; //码率(kb)
+    }else{
+        $return=false;
+    }
+    return $return;
+}
