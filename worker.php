@@ -16,7 +16,6 @@ if (empty($worker_no)){
 }
 $redis->set('Worker_Status_' . $worker_no, '1');
 echo "[Worker] Register Success\n";
-echo "[Worker] Create VM\n";
 start:
 //Dynamic Load Config
 $encode_bitrate_video = Get_Config('encode_bitrate_video');
@@ -30,7 +29,7 @@ $worker_thread = Get_Config('worker_thread');
 $work = $argv[2];
 if (!empty($work)) {
     $redis->set('Worker_Status_' . $worker_no, '2');
-    Add_Log('Worker','Worker Starting.....','INFO');
+    Add_Log('Worker #'.$worker_no,'Worker Starting.....','INFO');
     echo "[Worker] Get Work.\n";
     echo "[Worker] Find Work Data\n";
     $row_work = mysqli_fetch_array(mysqli_query($db_link, "SELECT * FROM video_list WHERE ID = '" . $work. "'"));
@@ -40,20 +39,58 @@ if (!empty($work)) {
     if (!file_exists(Get_Config('video_folder')."/" . $today)) {
         mkdir(Get_Config('video_folder')."/" . $today, 0777, true);
         echo "[File]Create Dir '" . $today . "'\n";
-        Add_Log('Worker-File','Create Dir "'.$today.'"','INFO');
+        Add_Log('Worker #'.$worker_no,'Create Dir "'.$today.'"','INFO');
     }
     $hls_dir = $row_work['random'];
     echo "[File] Create Dir '" . $hls_dir . "'\n";
-    Add_Log('Worker-File','Create Dir "'.$hls_dir.'"','INFO');
+    Add_Log('Worker #'.$worker_no,'Create Dir "'.$hls_dir.'"','INFO');
     mkdir(Get_Config('video_folder')."/" . $today . "/" . $hls_dir, 0777, true);
     //计算文件名
     $file_type = end(explode(".", $row_work['filename']));
     $filename = $row_work['random'] . '.' . $file_type;
-    //预置分辨率命令
-    if (!empty($encode_res)) {
-        $video_res = ' -s ' . $encode_res;
-    } else {
-        $video_res = '';
+    //
+    //
+    //
+    //转码
+    //获取视频比特率
+    $video_info=Get_Video_Info("encoding/".$filename);
+    if ($video_info==false){
+        echo "[INFO] Failed Get Video Info\n";
+    }else{
+        echo "[INFO] Video Bitrate :".$video_info['bitrate']."\n";
+        if ($encode_bitrate_video>$video_info['bitrate']){
+            $encode_bitrate_video=$video_info['bitrate'];
+            echo "[INFO] Bitrate Changed\n";
+        }else{
+            echo "[INFO] Bitrate Not Change\n";
+        }
+        sleep(2);
+    }
+    //预置Video Filter
+    $vf_init=0;
+    $vf_setting="";
+    //DELogo
+    if (Get_Config('delogo')==1){
+        //预置切除视频头命令
+        if (!empty(Get_Config('delogo_start_cut'))) {
+            $delogo_start_cut = " -ss " . Get_Config('delogo_start_cut');
+        } else {
+            $delogo_start_cut = "";
+        }
+        //[Video Filter] 设置DELogo
+        if ($vf_init==0){
+            $vf_setting=" -vf delogo=".Get_Config('delogo_pos');
+            $vf_init=1;
+        }else{
+            $vf_setting=$vf_setting.",delogo=".Get_Config('delogo_pos');
+        }
+    }
+    //[Video Filter] 设置分辨率
+    if ($vf_init==0){
+        $vf_setting=" -vf scale=".$encode_res;
+        $vf_init=1;
+    }else{
+        $vf_setting=$vf_setting.",scale=".$encode_res;
     }
     //预置帧率命令
     if (!empty($encode_framerate)) {
@@ -61,11 +98,41 @@ if (!empty($work)) {
     } else {
         $video_framerate = '';
     }
+    $common_encode = "ffmpeg -i encoding/" . $filename . $delogo_start_cut . $video_framerate . " -c:v libx264 -c:a aac -b:v " . $encode_bitrate_video . "K -b:a " . $encode_bitrate_audio . "K".$vf_setting." -keyint_min " . $encode_ts_frame . " -g " . $encode_ts_frame . " -sc_threshold 0 -strict -2 encoding/encode_" . $row_work['random'] . ".mp4 > cache/worker_".$worker_no." 2>&1";
+    echo "[Encode] Start Encode.........\n";
+    echo "[DEBUG] Encode Common:" . $common_encode;
+    sleep(2);
+    $redis->set('Worker_Monitor_'.$worker_no,'1');
+    Add_Log('Worker #'.$worker_no,'Start Encode','INFO');
+    exec($common_encode);
+    //判断转码结果
+    if (!file_exists("encoding/encode_".$row_work['random'].".mp4")){
+        //判断为转码失败
+        Add_Log('Worker #'.$worker_no,'Encode Failed','INFO');
+        Col_echo("[Encode] Encode Error\n",'light_red');
+        $log_name="Error_".$worker_no."_".$row_work['random'].".log";
+        Col_echo("[Logs] Dump Log to ".$log_name."\n",'yellow');
+        rename("cache/worker_".$worker_no,"logs\\".$log_name);
+        $redis->del('Work_Info_' . $worker_no);
+        $redis->del('Worker_Status_' . $worker_no);
+        $redis->del('Worker_Monitor_'.$worker_no);
+        mysqli_query($db_link, "UPDATE `video_list` SET `status` = '3' WHERE `ID` = " . $work . ";");
+        Col_echo("[Worker] Exiting\n",'light_red');
+        sleep(3);
+        exit;
+    }
+    unlink("encoding/" . $filename);
+    rename("encoding/encode_" . $row_work['random'] . ".mp4", "encoding/" . $row_work['random'] . ".mp4");
+    $filename = $row_work['random'] . ".mp4";
+    //
+    //
+    //
+    //切片
     //预置命令
-    $common = "ffmpeg -i \"encoding/" . $filename . "\" -b:v " . $encode_bitrate_video . "K -b:a " . $encode_bitrate_audio . "K -c:v libx264 -c:a aac -keyint_min " . $encode_ts_frame . " -g " . $encode_ts_frame . $video_res . $video_framerate . " -sc_threshold 0 -strict -2 -f hls -hls_list_size 0 -hls_init_time " . $encode_ts_time . " -hls_time " . $encode_ts_time . " -hls_key_info_file ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/key_info -hls_segment_filename ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/" . $hls_dir . "%03d.ts ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/index.m3u8";
+    $common = "ffmpeg -i \"encoding/" . $filename . "\" -c:v copy -c:a copy -f hls -hls_list_size 0 -hls_init_time " . $encode_ts_time . " -hls_time " . $encode_ts_time . " -hls_key_info_file " .Get_Config('video_folder')."/". $today . "/" . $hls_dir . "/key_info -hls_segment_filename " .Get_Config('video_folder')."/". $today . "/" . $hls_dir . "/" . $hls_dir . "%03d.ts ".Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/index.m3u8";
     //设置加密文件
     echo "[Encode] Setting Encryption Key\n";
-    Add_Log('Worker-Encode','Setting Encryption Key','INFO');
+    Add_Log('Worker #'.$worker_no,'Setting Encryption Key','INFO');
     $en_file = fopen(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/key.key", 'w');
     fwrite($en_file, Random_String(16));
     fclose($en_file);
@@ -81,7 +148,7 @@ if (!empty($work)) {
             $jpeg_res = "";
         }
         echo "[ScreenShot] JPEG-Working...\n";
-        Add_Log('Worker-ScreenShot','JPEG-Working','INFO');
+        Add_Log('Worker #'.$worker_no,'JPEG-Working','INFO');
         if (!file_exists(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots")) {
             mkdir(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots", 0777, true);
         }
@@ -117,7 +184,7 @@ if (!empty($work)) {
             $gif_res = "";
         }
         echo "[ScreenShot] GIF-Working...\n";
-        Add_Log('Worker-ScreenShot','GIF-Working','INFO');
+        Add_Log('Worker #'.$worker_no,'GIF-Working','INFO');
         if (!file_exists(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots")) {
             mkdir(Get_Config('video_folder')."/" . $today . "/" . $hls_dir . "/screenshots", 0777, true);
         }
@@ -137,14 +204,14 @@ if (!empty($work)) {
     }
     //开始转码
     echo "[Encode] Starting FFMPEG..........\n";
-    Add_Log('Worker-Encode','Starting FFmpeg','INFO');
+    Add_Log('Worker #'.$worker_no,'Start Segmenting','INFO');
     sleep(2);
     exec($common);
     echo "\n";
     echo "[Encode] Encode Done!\n";
-    Add_Log('Worker-Encode','Encode Done','INFO');
+    Add_Log('Worker #'.$worker_no,'Done','INFO');
     echo "[File] Delete File " . $row_work['filename'] . "\n";
-    Add_Log('Worker-File','Delete File "'.$row_work['filename'].'"','INFO');
+    Add_Log('Worker #'.$worker_no,'Delete File "'.$row_work['filename'].'"','INFO');
     unlink("encoding/" . $filename);
     echo "[Worker] Done!\n";
     $redis->del('Work_Info_' . $worker_no);
