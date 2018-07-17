@@ -100,45 +100,8 @@ if ($_GET['action'] == "update") {
         Change_Config('play_secure', $play_secure);
         Change_Config('allow_domain', $allow_domain);
         Change_Config('jump_link', $jump_link);
-        //预设置防盗链部分
-        if ($play_secure == 1) {
-            if (empty($jump_link)) {
-                $secure_part = "valid_referers " . $allow_domain . ";
-        if (\$invalid_referer) {
-            return 403;
-        }";
-            } else {
-                $secure_part = "valid_referers " . $allow_domain . ";
-        if (\$invalid_referer) {
-            rewrite ^/ " . $jump_link . " redirect; 
-        }";
-            }
-        } else {
-            $secure_part = "";
-        }
-        //拼合配置文件内容
-        $file_text = "server {
-    listen " . $video_port . ";
-    server_name " . $video_domain . ";
-    location / {
-        add_header Access-Control-Allow-Origin *;
-        root ".Get_Config('video_folder').";
-        " . $secure_part . "
-        index index.html index.htm;
-    }
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-    root html;
-    }
-}";
-        //打开文件句柄
-        $file_handle = fopen('/usr/local/nginx/conf/Video_Service.conf', 'w');
-        //写入
-        fwrite($file_handle, $file_text);
-        //关闭句柄
-        fclose($file_handle);
-        //重载Nginx
-        exec("/usr/local/nginx/sbin/nginx -s reload");
+        //Update
+        Nginx_Update_Video_Service();
         $return['code'] = "201";
         $return['data']['message'] = "Update Video Service Config Successful!";
         echo json_encode($return);
@@ -216,6 +179,8 @@ if ($_GET['action'] == "update") {
         }
         Change_Config('upload_folder',$upload_folder);
         Change_Config('video_folder',$video_folder);
+        //Update
+        Nginx_Update_Video_Service();
         $return['code'] = "201";
         $return['data']['message'] = "Update Storage Config Successful!";
         echo json_encode($return);

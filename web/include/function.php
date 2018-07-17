@@ -60,81 +60,136 @@ function Get_Config($name)
         return $result;
     }
 }
+
 //登录状态检查
-function Login_Status(){
-    if ($_SESSION['login_status']==1){
+function Login_Status()
+{
+    if ($_SESSION['login_status'] == 1) {
         return true;
-    }else{
+    } else {
         return false;
     }
 }
+
 //获取系统负载
-function get_used_status(){
-    $fp = popen('top -b -n 2 | grep -E "^(Cpu|Mem|Tasks)"',"r");//获取某一时刻系统cpu和内存使用情况
+function get_used_status()
+{
+    $fp = popen('top -b -n 2 | grep -E "^(Cpu|Mem|Tasks)"', "r");//获取某一时刻系统cpu和内存使用情况
     $rs = "";
-    while(!feof($fp)){
-        $rs .= fread($fp,1024);
+    while (!feof($fp)) {
+        $rs .= fread($fp, 1024);
     }
     pclose($fp);
-    $sys_info = explode("\n",$rs);
-    $cpu_info = explode(",",$sys_info[4]); //CPU占有量 数组
-    $mem_info = explode(",",$sys_info[5]); //内存占有量 数组
+    $sys_info = explode("\n", $rs);
+    $cpu_info = explode(",", $sys_info[4]); //CPU占有量 数组
+    $mem_info = explode(",", $sys_info[5]); //内存占有量 数组
 //CPU占有量
-    $cpu_usage = trim(trim($cpu_info[0],'Cpu(s): '),'%us'); //百分比
+    $cpu_usage = trim(trim($cpu_info[0], 'Cpu(s): '), '%us'); //百分比
 
 //内存占有量
-    $mem_total = trim(trim($mem_info[0],'Mem: '),'k total');
-    $mem_used = (int)trim($mem_info[1],'k used');
-    $mem_usage = round(100*intval($mem_used)/intval($mem_total),2); //百分比
+    $mem_total = trim(trim($mem_info[0], 'Mem: '), 'k total');
+    $mem_used = (int)trim($mem_info[1], 'k used');
+    $mem_usage = round(100 * intval($mem_used) / intval($mem_total), 2); //百分比
 
-    return array('cpu_usage'=>$cpu_usage,'mem_usage'=>$mem_usage);
+    return array('cpu_usage' => $cpu_usage, 'mem_usage' => $mem_usage);
 }
+
 //API鉴权
-function API_Auth($get,$post){
-    if (empty($get)&&empty($post)){
+function API_Auth($get, $post)
+{
+    if (empty($get) && empty($post)) {
         return false;
-    }elseif(empty($get)){
-        $api_key=$post;
-    }else{
-        $api_key=$get;
+    } elseif (empty($get)) {
+        $api_key = $post;
+    } else {
+        $api_key = $get;
     }
-    $real_api_key=Get_Config('api_key');
-    if ($api_key==$real_api_key){
+    $real_api_key = Get_Config('api_key');
+    if ($api_key == $real_api_key) {
         return true;
-    }else{
+    } else {
         return false;
     }
 }
+
 //删除目录及文件
 function Delete_Dir($dirName)
 {
-    if(! is_dir($dirName))
-    {
+    if (!is_dir($dirName)) {
         return false;
     }
     $handle = @opendir($dirName);
-    while(($file = @readdir($handle)) !== false)
-    {
-        if($file != '.' && $file != '..')
-        {
+    while (($file = @readdir($handle)) !== false) {
+        if ($file != '.' && $file != '..') {
             $dir = $dirName . '/' . $file;
             is_dir($dir) ? Delete_Dir($dir) : @unlink($dir);
         }
     }
     closedir($handle);
 
-    return rmdir($dirName) ;
+    return rmdir($dirName);
 }
+
 //更改系统设置
-function Change_Config($name,$value){
-    $db_link=DB_Link();
-    $redis=Redis_Link();
-    $row_config=mysqli_fetch_array(mysqli_query($db_link,"SELECT * FROM `setting` WHERE `name` = '".$name."'"));
-    if (empty($row_config['ID'])){
+function Change_Config($name, $value)
+{
+    $db_link = DB_Link();
+    $redis = Redis_Link();
+    $row_config = mysqli_fetch_array(mysqli_query($db_link, "SELECT * FROM `setting` WHERE `name` = '" . $name . "'"));
+    if (empty($row_config['ID'])) {
         return false;
-    }else{
-        mysqli_query($db_link,"UPDATE `setting` SET `data` = '".$value."' WHERE `name` = '".$name."'");
-        $redis->del('Config_'.$name);
+    } else {
+        mysqli_query($db_link, "UPDATE `setting` SET `data` = '" . $value . "' WHERE `name` = '" . $name . "'");
+        $redis->del('Config_' . $name);
         return true;
     }
+}
+
+//更新Nginx配置文件
+function Nginx_Update_Video_Service()
+{
+    //加载配置文件
+    $play_secure=Get_Config('play_secure');
+    $allow_domain=Get_Config('allow_domain');
+    $video_port=Get_Config('video_port');
+    $video_domain=Get_Config('video_domain');
+    //预设置防盗链部分
+    if ($play_secure == 1) {
+        if (empty($jump_link)) {
+            $secure_part = "valid_referers " . $allow_domain . ";
+        if (\$invalid_referer) {
+            return 403;
+        }";
+        } else {
+            $secure_part = "valid_referers " . $allow_domain . ";
+        if (\$invalid_referer) {
+            rewrite ^/ " . $jump_link . " redirect; 
+        }";
+        }
+    } else {
+        $secure_part = "";
+    }
+    //拼合配置文件内容
+    $file_text = "server {
+    listen " . $video_port . ";
+    server_name " . $video_domain . ";
+    location / {
+        add_header Access-Control-Allow-Origin *;
+        root " . Get_Config('video_folder') . ";
+        " . $secure_part . "
+        index index.html index.htm;
+    }
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+    root html;
+    }
+    }";
+    //打开文件句柄
+    $file_handle = fopen('/usr/local/nginx/conf/Video_Service.conf', 'w');
+    //写入
+    fwrite($file_handle, $file_text);
+    //关闭句柄
+    fclose($file_handle);
+    //重载Nginx
+    exec("/usr/local/nginx/sbin/nginx -s reload");
 }
